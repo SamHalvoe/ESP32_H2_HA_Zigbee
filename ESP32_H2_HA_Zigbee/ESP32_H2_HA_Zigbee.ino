@@ -1,9 +1,13 @@
-﻿#include <elapsedMillis.h>
+﻿#ifndef ZIGBEE_MODE_ED
+#error "Zigbee end device mode is not selected in Tools->Zigbee mode"
+#endif
+
+#include <Zigbee.h>
+#include <elapsedMillis.h>
+#include <FastLED.h>
 
 elapsedMillis timeSinceLedUpdate;
 const unsigned long LED_UPDATE_INTERVAL = 20; // ms
-
-#include <FastLED.h>
 
 #define LED_PIN     0
 #define NUM_LEDS    79
@@ -20,17 +24,11 @@ void updateColorForAllLeds(uint8_t in_red, uint8_t in_green, uint8_t in_blue)
   }
 }
 
-#ifndef ZIGBEE_MODE_ED
-#error "Zigbee end device mode is not selected in Tools->Zigbee mode"
-#endif
-
-#include "Zigbee.h"
-
-/* Zigbee color dimmable light configuration */
-#define ZIGBEE_RGB_LIGHT_ENDPOINT 10
 uint8_t ledBuildin = RGB_BUILTIN;
 uint8_t bootButton = BOOT_PIN;
 
+/* Zigbee color dimmable light configuration */
+#define ZIGBEE_RGB_LIGHT_ENDPOINT 10
 ZigbeeColorDimmableLight zbColorLight = ZigbeeColorDimmableLight(ZIGBEE_RGB_LIGHT_ENDPOINT);
 
 /********************* Temperature conversion functions **************************/
@@ -82,7 +80,6 @@ void setTempLight(bool state, uint8_t level, uint16_t mireds)
 void identify(uint16_t time)
 {
   static uint8_t blink = 1;
-  log_d("Identify called for %d seconds", time);
 
   if (time == 0)
   {
@@ -118,29 +115,22 @@ void setup()
 
   // Init RMT and leave light OFF
   rgbLedWrite(ledBuildin, 0, 0, 0);
-
   // Init button for factory reset
   pinMode(bootButton, INPUT_PULLUP);
 
   // Enable both XY (RGB) and Temperature color capabilities
   uint16_t capabilities = ZIGBEE_COLOR_CAPABILITY_X_Y | ZIGBEE_COLOR_CAPABILITY_COLOR_TEMP;
   zbColorLight.setLightColorCapabilities(capabilities);
-
   // Set callback functions for RGB and Temperature modes
   zbColorLight.onLightChangeRgb(setRGBLight);
   zbColorLight.onLightChangeTemp(setTempLight);
-
   // Optional: Set callback function for device identify
   zbColorLight.onIdentify(identify);
-
   // Optional: Set Zigbee device name and model
   zbColorLight.setManufacturerAndModel("Espressif", "ZBColorLightBulb");
-
   // Set min/max temperature range (High Kelvin -> Low Mireds: Min and Max is switched)
   zbColorLight.setLightColorTemperatureRange(kelvinToMireds(6500), kelvinToMireds(2000));
-
   // Add endpoint to Zigbee Core
-  Serial.println("Adding ZigbeeLight endpoint to Zigbee Core");
   Zigbee.addEndpoint(&zbColorLight);
 
   // When all EPs are registered, start Zigbee in End Device mode
@@ -160,6 +150,10 @@ void setup()
   }
 
   Serial.println();
+
+  rgbLedWrite(ledBuildin, 255, 0, 0);
+  delay(500);
+  rgbLedWrite(ledBuildin, 0, 0, 0);
 }
 
 void loop()
@@ -185,7 +179,9 @@ void loop()
       {
         // If key pressed for more than 3secs, factory reset Zigbee and reboot
         Serial.println("Resetting Zigbee to factory and rebooting in 1s.");
+        rgbLedWrite(ledBuildin, 0, 255, 0);
         delay(1000);
+        rgbLedWrite(ledBuildin, 0, 0, 0);
         Zigbee.factoryReset();
       }
     }
