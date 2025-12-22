@@ -14,8 +14,6 @@ const unsigned long LED_UPDATE_INTERVAL = 20; // ms
 #define BRIGHTNESS  64
 CRGB leds[NUM_LEDS];
 
-#define UPDATES_PER_SECOND 100
-
 void updateColorForAllLeds(uint8_t in_red, uint8_t in_green, uint8_t in_blue)
 {
   for (size_t index = 0; index < NUM_LEDS; ++index)
@@ -134,7 +132,7 @@ void setup()
   Zigbee.addEndpoint(&zbColorLight);
 
   // When all EPs are registered, start Zigbee in End Device mode
-  if (not Zigbee.begin())
+  if (not Zigbee.begin(ZIGBEE_END_DEVICE))
   {
     Serial.println("Zigbee failed to start!");
     Serial.println("Rebooting...");
