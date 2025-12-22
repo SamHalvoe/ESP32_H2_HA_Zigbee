@@ -29,7 +29,7 @@ void updateColorForAllLeds(uint8_t in_red, uint8_t in_green, uint8_t in_blue)
 /* Zigbee color dimmable light configuration */
 #define ZIGBEE_RGB_LIGHT_ENDPOINT 10
 uint8_t ledBuildin = RGB_BUILTIN;
-uint8_t button = BOOT_PIN;
+uint8_t bootButton = BOOT_PIN;
 
 ZigbeeColorDimmableLight zbColorLight = ZigbeeColorDimmableLight(ZIGBEE_RGB_LIGHT_ENDPOINT);
 
@@ -55,7 +55,7 @@ void setRGBLight(bool state, uint8_t red, uint8_t green, uint8_t blue, uint8_t l
   }
 
   float brightness = static_cast<float>(level) / 255.0f;
-  rgbLedWrite(ledBuildin, red * brightness, green * brightness, blue * brightness);
+  rgbLedWrite(ledBuildin, green * brightness, red * brightness, blue * brightness);
   updateColorForAllLeds(red * brightness, green * brightness, blue * brightness);
 }
 
@@ -120,7 +120,7 @@ void setup()
   rgbLedWrite(ledBuildin, 0, 0, 0);
 
   // Init button for factory reset
-  pinMode(button, INPUT_PULLUP);
+  pinMode(bootButton, INPUT_PULLUP);
 
   // Enable both XY (RGB) and Temperature color capabilities
   uint16_t capabilities = ZIGBEE_COLOR_CAPABILITY_X_Y | ZIGBEE_COLOR_CAPABILITY_COLOR_TEMP;
@@ -171,13 +171,13 @@ void loop()
   }
 
   // Checking button for factory reset
-  if (digitalRead(button) == LOW) // Push button pressed
+  if (digitalRead(bootButton) == LOW) // Push button pressed
   {
     // Key debounce handling
     delay(100);
     int startTime = millis();
 
-    while (digitalRead(button) == LOW)
+    while (digitalRead(bootButton) == LOW) // Push button pressed
     {
       delay(50);
 
