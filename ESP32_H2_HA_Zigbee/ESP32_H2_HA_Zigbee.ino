@@ -144,6 +144,9 @@ void setup()
   while (not Zigbee.connected())
   {
     Serial.print(".");
+    rgbLedWrite(ledBuildin, 0, 0, 255);
+    delay(100);
+    rgbLedWrite(ledBuildin, 0, 0, 0);
     delay(100);
   }
 
