@@ -111,7 +111,7 @@ void setup()
 {
   Serial.begin(115200);
 
-  FastLED.addLeds<SK6812, LED_PIN, GRB>(leds, NUM_LEDS);
+  FastLED.addLeds<SK6812, LED_PIN, GRB>(leds, NUM_LEDS).setRgbw();
   FastLED.setBrightness(BRIGHTNESS);
   updateColorForAllLeds(0, 0, 0);
   FastLED.show();
