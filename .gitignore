@@ -361,3 +361,5 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+/ESP32_H2_HA_Zigbee/__vm/Compile.vmps.xml
+/ESP32_H2_HA_Zigbee/__vm/Upload.vmps.xml
