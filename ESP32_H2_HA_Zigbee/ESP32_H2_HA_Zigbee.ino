@@ -5,17 +5,23 @@
 #include <Zigbee.h>
 #include <elapsedMillis.h>
 #include <FastLED.h>
+#include <fx/1d/fire2012.h>
+#include <fl/screenmap.h>
 
 elapsedSeconds timeSinceZigbeeNotConnected;
 const unsigned long ZIGBEE_NOT_CONNECTED_TIMEOUT = 300; // s
 
 elapsedMillis timeSinceLedUpdate;
-const unsigned long LED_UPDATE_INTERVAL = 20; // ms
+const unsigned long LED_UPDATE_INTERVAL = 66; // ms
 
 #define LED_PIN     0
 #define NUM_LEDS    79
 #define BRIGHTNESS  64
 CRGB leds[NUM_LEDS];
+
+#define COOLING 75
+#define SPARKING 50
+fl::Fire2012 fire(NUM_LEDS, COOLING, SPARKING);
 
 void updateColorForAllLeds(uint8_t in_red, uint8_t in_green, uint8_t in_blue)
 {
@@ -38,7 +44,14 @@ ZigbeeBinary zbBinary = ZigbeeBinary(BINARY_DEVICE_ENDPOINT_NUMBER);
 
 void binarySwitch(bool state)
 {
-  
+  if (state)
+  {
+    zbColorLight.setLightState(false); // turn normal light off
+  }
+  else
+  {
+    updateColorForAllLeds(0, 0, 0);
+  }
 }
 
 /********************* Temperature conversion functions **************************/
@@ -130,7 +143,7 @@ void factoryResetifBootIsPressed()
       {
         // If key pressed for more than 3secs, factory reset Zigbee and reboot
         Serial.println("Resetting Zigbee to factory and rebooting in 1s.");
-        rgbLedWrite(ledBuildin, 0, 255, 0);
+        rgbLedWrite(ledBuildin, 0, 255, 0); // red
         delay(1000);
         rgbLedWrite(ledBuildin, 0, 0, 0);
         Zigbee.factoryReset();
@@ -144,7 +157,8 @@ void setup()
 {
   Serial.begin(115200);
 
-  FastLED.addLeds<SK6812, LED_PIN, GRB>(leds, NUM_LEDS).setRgbw();
+  fl::ScreenMap screenMap = fl::ScreenMap::DefaultStrip(NUM_LEDS);
+  FastLED.addLeds<SK6812, LED_PIN, GRB>(leds, NUM_LEDS).setRgbw().setScreenMap(screenMap);
   FastLED.setBrightness(BRIGHTNESS);
   updateColorForAllLeds(0, 0, 0);
   FastLED.show();
@@ -163,7 +177,7 @@ void setup()
   // Optional: Set callback function for device identify
   zbColorLight.onIdentify(identify);
   // Optional: Set Zigbee device name and model
-  zbColorLight.setManufacturerAndModel("Espressif", "ZBColorLightBulb");
+  zbColorLight.setManufacturerAndModel("Halvoe", "ZBColorLight");
   // Set min/max temperature range (High Kelvin -> Low Mireds: Min and Max is switched)
   zbColorLight.setLightColorTemperatureRange(kelvinToMireds(6500), kelvinToMireds(2000));
   // Add endpoint to Zigbee Core
@@ -171,7 +185,7 @@ void setup()
 
   // Set up binary status input + switch output
   zbBinary.addBinaryOutput();
-  zbBinary.setBinaryOutputDescription("Switch");
+  zbBinary.setBinaryOutputDescription("Fire");
   zbBinary.onBinaryOutputChange(binarySwitch);
   Zigbee.addEndpoint(&zbBinary);
 
@@ -180,7 +194,7 @@ void setup()
   {
     Serial.println("Zigbee failed to start!");
     Serial.println("Rebooting in 1s...");
-    rgbLedWrite(ledBuildin, 0, 255, 255);
+    rgbLedWrite(ledBuildin, 0, 255, 255); // purple
     delay(1000);
     rgbLedWrite(ledBuildin, 0, 0, 0);
     ESP.restart();
@@ -192,7 +206,7 @@ void setup()
   while (not Zigbee.connected())
   {
     Serial.print(".");
-    rgbLedWrite(ledBuildin, 0, 0, 255);
+    rgbLedWrite(ledBuildin, 0, 0, 255); // blue
     delay(100);
     rgbLedWrite(ledBuildin, 0, 0, 0);
     delay(100);
@@ -201,7 +215,7 @@ void setup()
     {
       Serial.println("Zigbee failed to connect!");
       Serial.println("Rebooting in 1s...");
-      rgbLedWrite(ledBuildin, 255, 255, 0);
+      rgbLedWrite(ledBuildin, 255, 255, 0); // yellow or yellowish green
       delay(1000);
       rgbLedWrite(ledBuildin, 0, 0, 0);
       ESP.restart();
@@ -212,7 +226,7 @@ void setup()
 
   Serial.println();
 
-  rgbLedWrite(ledBuildin, 255, 0, 0);
+  rgbLedWrite(ledBuildin, 255, 0, 0); // green
   delay(500);
   rgbLedWrite(ledBuildin, 0, 0, 0);
 }
@@ -221,7 +235,16 @@ void loop()
 {
   if (timeSinceLedUpdate >= LED_UPDATE_INTERVAL)
   {
-    FastLED.show();
+    if (zbBinary.getBinaryOutput())
+    {
+      fire.draw(fl::Fx1d::DrawContext(millis(), leds));
+      FastLED.show();
+    }
+    else
+    {
+      FastLED.show();
+    }
+
     timeSinceLedUpdate = 0;
   }
 
