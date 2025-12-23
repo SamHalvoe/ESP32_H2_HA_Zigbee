@@ -6,6 +6,9 @@
 #include <elapsedMillis.h>
 #include <FastLED.h>
 
+elapsedSeconds timeSinceZigbeeNotConnected;
+const unsigned long ZIGBEE_NOT_CONNECTED_TIMEOUT = 300; // s
+
 elapsedMillis timeSinceLedUpdate;
 const unsigned long LED_UPDATE_INTERVAL = 20; // ms
 
@@ -28,6 +31,16 @@ uint8_t bootButton = BOOT_PIN;
 /* Zigbee color dimmable light configuration */
 #define ZIGBEE_RGB_LIGHT_ENDPOINT 10
 ZigbeeColorDimmableLight zbColorLight = ZigbeeColorDimmableLight(ZIGBEE_RGB_LIGHT_ENDPOINT);
+
+/* Zigbee binary sensor device configuration */
+#define BINARY_DEVICE_ENDPOINT_NUMBER 1
+ZigbeeBinary zbBinary = ZigbeeBinary(BINARY_DEVICE_ENDPOINT_NUMBER);
+
+void binarySwitch(bool state)
+{
+  zbBinary.setBinaryInput(state);
+  zbBinary.reportBinaryInput();
+}
 
 /********************* Temperature conversion functions **************************/
 uint16_t kelvinToMireds(uint16_t kelvin)
@@ -131,16 +144,26 @@ void setup()
   // Add endpoint to Zigbee Core
   Zigbee.addEndpoint(&zbColorLight);
 
+  // Set up binary status input + switch output
+  zbBinary.addBinaryOutput();
+  zbBinary.setBinaryOutputDescription("Switch");
+  zbBinary.onBinaryOutputChange(binarySwitch);
+  Zigbee.addEndpoint(&zbBinary);
+
   // When all EPs are registered, start Zigbee in End Device mode
   if (not Zigbee.begin(ZIGBEE_END_DEVICE))
   {
     Serial.println("Zigbee failed to start!");
-    Serial.println("Rebooting...");
+    Serial.println("Rebooting in 1s...");
+    rgbLedWrite(ledBuildin, 0, 255, 255);
+    delay(1000);
+    rgbLedWrite(ledBuildin, 0, 0, 0);
     ESP.restart();
   }
 
   Serial.println("Connecting to network");
 
+  timeSinceZigbeeNotConnected = 0;
   while (not Zigbee.connected())
   {
     Serial.print(".");
@@ -148,6 +171,15 @@ void setup()
     delay(100);
     rgbLedWrite(ledBuildin, 0, 0, 0);
     delay(100);
+    if (timeSinceZigbeeNotConnected >= ZIGBEE_NOT_CONNECTED_TIMEOUT)
+    {
+      Serial.println("Zigbee failed to connect!");
+      Serial.println("Rebooting in 1s...");
+      rgbLedWrite(ledBuildin, 255, 255, 0);
+      delay(1000);
+      rgbLedWrite(ledBuildin, 0, 0, 0);
+      ESP.restart();
+    }
   }
 
   Serial.println();
