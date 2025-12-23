@@ -38,8 +38,7 @@ ZigbeeBinary zbBinary = ZigbeeBinary(BINARY_DEVICE_ENDPOINT_NUMBER);
 
 void binarySwitch(bool state)
 {
-  zbBinary.setBinaryInput(state);
-  zbBinary.reportBinaryInput();
+  
 }
 
 /********************* Temperature conversion functions **************************/
@@ -114,6 +113,32 @@ void identify(uint16_t time)
   blink = (blink == 1 ? 0 : 1);
 }
 
+void factoryResetifBootIsPressed()
+{
+  // Checking button for factory reset
+  if (digitalRead(bootButton) == LOW) // Push button pressed
+  {
+    // Key debounce handling
+    delay(100);
+    int startTime = millis();
+
+    while (digitalRead(bootButton) == LOW) // Push button pressed
+    {
+      delay(50);
+
+      if ((millis() - startTime) > 3000)
+      {
+        // If key pressed for more than 3secs, factory reset Zigbee and reboot
+        Serial.println("Resetting Zigbee to factory and rebooting in 1s.");
+        rgbLedWrite(ledBuildin, 0, 255, 0);
+        delay(1000);
+        rgbLedWrite(ledBuildin, 0, 0, 0);
+        Zigbee.factoryReset();
+      }
+    }
+  }
+}
+
 /********************* Arduino functions **************************/
 void setup()
 {
@@ -171,6 +196,7 @@ void setup()
     delay(100);
     rgbLedWrite(ledBuildin, 0, 0, 0);
     delay(100);
+
     if (timeSinceZigbeeNotConnected >= ZIGBEE_NOT_CONNECTED_TIMEOUT)
     {
       Serial.println("Zigbee failed to connect!");
@@ -180,6 +206,8 @@ void setup()
       rgbLedWrite(ledBuildin, 0, 0, 0);
       ESP.restart();
     }
+
+    factoryResetifBootIsPressed();
   }
 
   Serial.println();
@@ -197,26 +225,5 @@ void loop()
     timeSinceLedUpdate = 0;
   }
 
-  // Checking button for factory reset
-  if (digitalRead(bootButton) == LOW) // Push button pressed
-  {
-    // Key debounce handling
-    delay(100);
-    int startTime = millis();
-
-    while (digitalRead(bootButton) == LOW) // Push button pressed
-    {
-      delay(50);
-
-      if ((millis() - startTime) > 3000)
-      {
-        // If key pressed for more than 3secs, factory reset Zigbee and reboot
-        Serial.println("Resetting Zigbee to factory and rebooting in 1s.");
-        rgbLedWrite(ledBuildin, 0, 255, 0);
-        delay(1000);
-        rgbLedWrite(ledBuildin, 0, 0, 0);
-        Zigbee.factoryReset();
-      }
-    }
-  }
+  factoryResetifBootIsPressed();
 }
