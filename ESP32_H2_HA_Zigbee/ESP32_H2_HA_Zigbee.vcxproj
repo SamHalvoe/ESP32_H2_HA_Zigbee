@@ -80,6 +80,9 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="zbFastLED.hpp" />
+    <ClInclude Include="zbFire.hpp" />
+    <ClInclude Include="zbLight.hpp" />
     <ClInclude Include="__vm\.ESP32_H2_HA_Zigbee.vsarduino.h" />
   </ItemGroup>
   <PropertyGroup>
