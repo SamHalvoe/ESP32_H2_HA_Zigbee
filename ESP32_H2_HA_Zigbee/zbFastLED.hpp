@@ -36,7 +36,7 @@ void updateColorForAllLeds(uint8_t in_red, uint8_t in_green, uint8_t in_blue)
 void setupLeds()
 {
   fl::ScreenMap screenMap = fl::ScreenMap::DefaultStrip(NUM_LEDS);
-  FastLED.addLeds<SK6812, LED_PIN, GRB>(leds, NUM_LEDS).setScreenMap(screenMap).setRgbw();
+  FastLED.addLeds<SK6812, LED_PIN, GRB>(leds, NUM_LEDS).setScreenMap(screenMap).setCorrection(TypicalLEDStrip).setRgbw();
   FastLED.setBrightness(BRIGHTNESS);
   updateColorForAllLeds(0, 0, 0);
   FastLED.show();
